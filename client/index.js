@@ -1,8 +1,6 @@
-import routes from "/:routes.js";
-import create from "/:create.jsx";
-
+// Newomen Platform Entry Point
 export default {
-  context: import("/:context.js"),
-  routes,
-  create,
+  name: 'Newomen',
+  version: '1.0.0',
+  description: 'AI conversational platform for women\'s personal growth'
 };

@@ -1,0 +1,8 @@
+{
+  "appId": "com.newomen.app",
+  "appName": "newomen",
+  "webDir": "dist/client",
+  "server": {
+    "androidScheme": "https"
+  }
+}
