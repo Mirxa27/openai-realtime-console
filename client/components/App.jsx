@@ -1,179 +1,130 @@
-import { useEffect, useRef, useState } from "react";
-import logo from "/assets/openai-logomark.svg";
-import EventLog from "./EventLog";
-import SessionControls from "./SessionControls";
-import ToolPanel from "./ToolPanel";
+import { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
+import { useAuthStore } from '../lib/store';
+import { getCurrentUser } from '../lib/supabase';
+import MainLayout from './Layout/MainLayout';
+
+// Pages
+import HomePage from './Pages/HomePage';
+import LoginPage from './Pages/LoginPage';
+import SignupPage from './Pages/SignupPage';
+import OnboardingPage from './Pages/OnboardingPage';
+import ChatPage from './Pages/ChatPage';
+import AssessmentsPage from './Pages/AssessmentsPage';
+import CommunityPage from './Pages/CommunityPage';
+import ResourcesPage from './Pages/ResourcesPage';
+import ProfilePage from './Pages/ProfilePage';
+import SettingsPage from './Pages/SettingsPage';
+import AdminPage from './Pages/AdminPage';
+
+// Protected Route Component
+function ProtectedRoute({ children }) {
+  const { user } = useAuthStore();
+  return user ? children : <Navigate to="/login" />;
+}
+
+// Admin Route Component
+function AdminRoute({ children }) {
+  const { user, profile } = useAuthStore();
+  return user && profile?.role === 'admin' ? children : <Navigate to="/" />;
+}
 
 export default function App() {
-  const [isSessionActive, setIsSessionActive] = useState(false);
-  const [events, setEvents] = useState([]);
-  const [dataChannel, setDataChannel] = useState(null);
-  const peerConnection = useRef(null);
-  const audioElement = useRef(null);
+  const { setUser, setProfile, setLoading } = useAuthStore();
 
-  async function startSession() {
-    // Get a session token for OpenAI Realtime API
-    const tokenResponse = await fetch("/token");
-    const data = await tokenResponse.json();
-    const EPHEMERAL_KEY = data.value;
-
-    // Create a peer connection
-    const pc = new RTCPeerConnection();
-
-    // Set up to play remote audio from the model
-    audioElement.current = document.createElement("audio");
-    audioElement.current.autoplay = true;
-    pc.ontrack = (e) => (audioElement.current.srcObject = e.streams[0]);
-
-    // Add local audio track for microphone input in the browser
-    const ms = await navigator.mediaDevices.getUserMedia({
-      audio: true,
-    });
-    pc.addTrack(ms.getTracks()[0]);
-
-    // Set up data channel for sending and receiving events
-    const dc = pc.createDataChannel("oai-events");
-    setDataChannel(dc);
-
-    // Start the session using the Session Description Protocol (SDP)
-    const offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
-
-    const baseUrl = "https://api.openai.com/v1/realtime/calls";
-    const model = "gpt-realtime";
-    const sdpResponse = await fetch(`${baseUrl}?model=${model}`, {
-      method: "POST",
-      body: offer.sdp,
-      headers: {
-        Authorization: `Bearer ${EPHEMERAL_KEY}`,
-        "Content-Type": "application/sdp",
-      },
-    });
-
-    const sdp = await sdpResponse.text();
-    const answer = { type: "answer", sdp };
-    await pc.setRemoteDescription(answer);
-
-    peerConnection.current = pc;
-  }
-
-  // Stop current session, clean up peer connection and data channel
-  function stopSession() {
-    if (dataChannel) {
-      dataChannel.close();
-    }
-
-    peerConnection.current.getSenders().forEach((sender) => {
-      if (sender.track) {
-        sender.track.stop();
+  useEffect(() => {
+    // Initialize auth state
+    const initAuth = async () => {
+      setLoading(true);
+      try {
+        const { user, error } = await getCurrentUser();
+        if (user && !error) {
+          setUser(user);
+          // Fetch user profile
+          // This will be implemented when we create the profile fetching logic
+        }
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+      } finally {
+        setLoading(false);
       }
-    });
-
-    if (peerConnection.current) {
-      peerConnection.current.close();
-    }
-
-    setIsSessionActive(false);
-    setDataChannel(null);
-    peerConnection.current = null;
-  }
-
-  // Send a message to the model
-  function sendClientEvent(message) {
-    if (dataChannel) {
-      const timestamp = new Date().toLocaleTimeString();
-      message.event_id = message.event_id || crypto.randomUUID();
-
-      // send event before setting timestamp since the backend peer doesn't expect this field
-      dataChannel.send(JSON.stringify(message));
-
-      // if guard just in case the timestamp exists by miracle
-      if (!message.timestamp) {
-        message.timestamp = timestamp;
-      }
-      setEvents((prev) => [message, ...prev]);
-    } else {
-      console.error(
-        "Failed to send message - no data channel available",
-        message,
-      );
-    }
-  }
-
-  // Send a text message to the model
-  function sendTextMessage(message) {
-    const event = {
-      type: "conversation.item.create",
-      item: {
-        type: "message",
-        role: "user",
-        content: [
-          {
-            type: "input_text",
-            text: message,
-          },
-        ],
-      },
     };
 
-    sendClientEvent(event);
-    sendClientEvent({ type: "response.create" });
-  }
-
-  // Attach event listeners to the data channel when a new one is created
-  useEffect(() => {
-    if (dataChannel) {
-      // Append new server events to the list
-      dataChannel.addEventListener("message", (e) => {
-        const event = JSON.parse(e.data);
-        if (!event.timestamp) {
-          event.timestamp = new Date().toLocaleTimeString();
-        }
-
-        setEvents((prev) => [event, ...prev]);
-      });
-
-      // Set session active when the data channel is opened
-      dataChannel.addEventListener("open", () => {
-        setIsSessionActive(true);
-        setEvents([]);
-      });
-    }
-  }, [dataChannel]);
+    initAuth();
+  }, [setUser, setProfile, setLoading]);
 
   return (
-    <>
-      <nav className="absolute top-0 left-0 right-0 h-16 flex items-center">
-        <div className="flex items-center gap-4 w-full m-4 pb-2 border-0 border-b border-solid border-gray-200">
-          <img style={{ width: "24px" }} src={logo} />
-          <h1>realtime console</h1>
-        </div>
-      </nav>
-      <main className="absolute top-16 left-0 right-0 bottom-0">
-        <section className="absolute top-0 left-0 right-[380px] bottom-0 flex">
-          <section className="absolute top-0 left-0 right-0 bottom-32 px-4 overflow-y-auto">
-            <EventLog events={events} />
-          </section>
-          <section className="absolute h-32 left-0 right-0 bottom-0 p-4">
-            <SessionControls
-              startSession={startSession}
-              stopSession={stopSession}
-              sendClientEvent={sendClientEvent}
-              sendTextMessage={sendTextMessage}
-              events={events}
-              isSessionActive={isSessionActive}
-            />
-          </section>
-        </section>
-        <section className="absolute top-0 w-[380px] right-0 bottom-0 p-4 pt-0 overflow-y-auto">
-          <ToolPanel
-            sendClientEvent={sendClientEvent}
-            sendTextMessage={sendTextMessage}
-            events={events}
-            isSessionActive={isSessionActive}
-          />
-        </section>
-      </main>
-    </>
+    <Router>
+      <MainLayout>
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={<HomePage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+          
+          {/* Protected Routes */}
+          <Route path="/onboarding" element={
+            <ProtectedRoute>
+              <OnboardingPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/chat" element={
+            <ProtectedRoute>
+              <ChatPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/assessments" element={
+            <ProtectedRoute>
+              <AssessmentsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/community" element={
+            <ProtectedRoute>
+              <CommunityPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/resources" element={
+            <ProtectedRoute>
+              <ResourcesPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <ProfilePage />
+            </ProtectedRoute>
+          } />
+          <Route path="/settings" element={
+            <ProtectedRoute>
+              <SettingsPage />
+            </ProtectedRoute>
+          } />
+          
+          {/* Admin Routes */}
+          <Route path="/admin/*" element={
+            <AdminRoute>
+              <AdminPage />
+            </AdminRoute>
+          } />
+          
+          {/* Catch all */}
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </MainLayout>
+      
+      {/* Toast notifications */}
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: 'rgba(255, 255, 255, 0.1)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            color: 'white',
+          },
+        }}
+      />
+    </Router>
   );
 }
