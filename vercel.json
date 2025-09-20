@@ -5,7 +5,7 @@
       "src": "package.json",
       "use": "@vercel/node",
       "config": {
-        "includeFiles": ["client/**", "database/**"]
+        "includeFiles": ["client/**", "database/**", "scripts/**"]
       }
     }
   ],
@@ -28,11 +28,61 @@
     "OPENAI_API_KEY": "@openai_api_key",
     "PAYPAL_CLIENT_ID": "@paypal_client_id",
     "PAYPAL_CLIENT_SECRET": "@paypal_client_secret",
-    "PAYPAL_ENVIRONMENT": "@paypal_environment"
+    "PAYPAL_ENVIRONMENT": "@paypal_environment",
+    "VERCEL_TOKEN": "@vercel_token",
+    "VERCEL_PROJECT_ID": "@vercel_project_id",
+    "VERCEL_PROJECT_NAME": "@vercel_project_name",
+    "VERCEL_ORG_ID": "@vercel_org_id",
+    "SITE_NAME": "Newomen",
+    "SITE_DESCRIPTION": "AI-powered personal growth platform for women",
+    "SITE_LOGO_URL": "/logo.png",
+    "FRONTEND_URL": "@frontend_url"
   },
   "functions": {
     "server.js": {
       "maxDuration": 30
     }
-  }
+  },
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, POST, PUT, DELETE, OPTIONS"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",  
+          "value": "Content-Type, Authorization"
+        }
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/admin/:path*",
+      "destination": "/admin/:path*"
+    }
+  ]
 }
