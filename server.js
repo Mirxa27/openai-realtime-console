@@ -270,13 +270,159 @@ app.post("/api/admin/fetch-models", authenticateUser, requireAdmin, async (req, 
 
 app.post("/api/admin/deploy", authenticateUser, requireAdmin, async (req, res) => {
   try {
-    // Implement Vercel deployment trigger
-    // This would integrate with Vercel's API to trigger a new deployment
-    res.json({ success: true, message: 'Deployment initiated' });
+    const { reason = 'Manual deployment', config } = req.body;
+    
+    // Check if Vercel token is available
+    const vercelToken = process.env.VERCEL_TOKEN;
+    const vercelProjectId = process.env.VERCEL_PROJECT_ID;
+    
+    if (!vercelToken || !vercelProjectId) {
+      return res.json({ 
+        success: false, 
+        error: 'Vercel credentials not configured. Please add VERCEL_TOKEN and VERCEL_PROJECT_ID to environment variables.' 
+      });
+    }
+
+    // Trigger Vercel deployment using their API
+    const vercelResponse = await fetch(`https://api.vercel.com/v13/deployments`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${vercelToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name: process.env.VERCEL_PROJECT_NAME || 'newomen-platform',
+        project: vercelProjectId,
+        target: 'production',
+        gitSource: {
+          type: 'github',
+          ref: 'main'
+        },
+        meta: {
+          deployReason: reason
+        }
+      })
+    });
+
+    const deploymentData = await vercelResponse.json();
+    
+    if (vercelResponse.ok) {
+      // Store deployment record
+      const { data: deployment } = await supabase
+        .from('deployments')
+        .insert({
+          user_id: req.user.id,
+          reason: reason,
+          status: 'initiated',
+          vercel_deployment_id: deploymentData.id,
+          vercel_url: deploymentData.url,
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      res.json({ 
+        success: true, 
+        message: 'Deployment initiated successfully',
+        deploymentId: deploymentData.id,
+        url: deploymentData.url
+      });
+    } else {
+      throw new Error(deploymentData.error?.message || 'Vercel deployment failed');
+    }
+  } catch (error) {
+    console.error('Deployment error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Design configuration endpoints
+app.get("/api/admin/design-config", authenticateUser, requireAdmin, async (req, res) => {
+  try {
+    const { data: config } = await supabase
+      .from('design_configs')
+      .select('*')
+      .eq('is_active', true)
+      .single();
+
+    res.json({ success: true, config: config?.config || null });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
+app.post("/api/admin/design-config", authenticateUser, requireAdmin, async (req, res) => {
+  try {
+    const { config } = req.body;
+    
+    // Deactivate current config
+    await supabase
+      .from('design_configs')
+      .update({ is_active: false })
+      .eq('is_active', true);
+
+    // Insert new config
+    const { data: newConfig } = await supabase
+      .from('design_configs')
+      .insert({
+        config: config,
+        is_active: true,
+        updated_by: req.user.id,
+        created_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    // Generate CSS file with custom properties
+    const cssContent = generateCSSFromConfig(config);
+    
+    // In a real implementation, you would save this to a static file
+    // For now, we'll store it in the database for the frontend to inject
+    await supabase
+      .from('design_configs')
+      .update({ generated_css: cssContent })
+      .eq('id', newConfig.id);
+
+    res.json({ success: true, config: newConfig });
+  } catch (error) {
+    console.error('Design config save error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Helper function to generate CSS from design config
+function generateCSSFromConfig(config) {
+  let css = ':root {\n';
+  
+  // Colors
+  if (config.colors) {
+    Object.entries(config.colors).forEach(([key, value]) => {
+      css += `  --color-${key}: ${value};\n`;
+    });
+  }
+  
+  // Typography
+  if (config.typography) {
+    css += `  --font-heading: ${config.typography.headingFont || 'Inter'};\n`;
+    css += `  --font-body: ${config.typography.bodyFont || 'Inter'};\n`;
+    
+    if (config.typography.fontSize) {
+      Object.entries(config.typography.fontSize).forEach(([key, value]) => {
+        css += `  --font-size-${key}: ${value};\n`;
+      });
+    }
+  }
+  
+  // Layout
+  if (config.layout) {
+    Object.entries(config.layout).forEach(([key, value]) => {
+      css += `  --${key}: ${value};\n`;
+    });
+  }
+  
+  css += '}\n';
+  return css;
+}
 
 // PayPal webhook endpoint
 app.post("/api/webhooks/paypal", async (req, res) => {

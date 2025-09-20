@@ -1,0 +1,155 @@
+/* Dynamic Theme CSS - Updated by Admin Design Settings */
+:root {
+  /* Default Color Scheme */
+  --color-primary: #8B5CF6;
+  --color-secondary: #A855F7;
+  --color-accent: #C084FC;
+  --color-background: #0F0F23;
+  --color-surface: #1A1A35;
+  --color-text: #FFFFFF;
+
+  /* Typography */
+  --font-heading: 'Inter', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-size-base: 16px;
+  --font-size-heading: 2rem;
+  --font-size-small: 14px;
+
+  /* Layout & Effects */
+  --borderRadius: 16px;
+  --spacing: 1rem;
+  --glassOpacity: 0.1;
+  --backdropBlur: 20px;
+}
+
+/* Apply dynamic theme to existing classes */
+.newomen-primary {
+  background: var(--color-primary) !important;
+}
+
+.newomen-secondary {
+  background: var(--color-secondary) !important;
+}
+
+.newomen-accent {
+  background: var(--color-accent) !important;
+}
+
+.text-newomen-primary {
+  color: var(--color-primary) !important;
+}
+
+.text-newomen-secondary {
+  color: var(--color-secondary) !important;
+}
+
+.border-newomen-primary {
+  border-color: var(--color-primary) !important;
+}
+
+.bg-newomen-primary {
+  background-color: var(--color-primary) !important;
+}
+
+.bg-newomen-secondary {
+  background-color: var(--color-secondary) !important;
+}
+
+.bg-newomen-accent {
+  background-color: var(--color-accent) !important;
+}
+
+.from-newomen-primary {
+  --tw-gradient-from: var(--color-primary) !important;
+}
+
+.from-newomen-secondary {
+  --tw-gradient-from: var(--color-secondary) !important;
+}
+
+.to-newomen-secondary {
+  --tw-gradient-to: var(--color-secondary) !important;
+}
+
+.to-newomen-accent {
+  --tw-gradient-to: var(--color-accent) !important;
+}
+
+.focus\:ring-newomen-primary:focus {
+  --tw-ring-color: var(--color-primary) !important;
+}
+
+.hover\:from-newomen-accent:hover {
+  --tw-gradient-from: var(--color-accent) !important;
+}
+
+.hover\:to-newomen-secondary:hover {
+  --tw-gradient-to: var(--color-secondary) !important;
+}
+
+/* Glass morphism effects with dynamic opacity */
+.glass-card,
+.glass {
+  background: rgba(255, 255, 255, var(--glassOpacity)) !important;
+  backdrop-filter: blur(var(--backdropBlur)) !important;
+  border-radius: var(--borderRadius) !important;
+}
+
+/* Dynamic typography */
+h1, h2, h3, h4, h5, h6,
+.font-display {
+  font-family: var(--font-heading) !important;
+}
+
+body,
+.font-body {
+  font-family: var(--font-body) !important;
+  font-size: var(--font-size-base) !important;
+}
+
+.text-sm {
+  font-size: var(--font-size-small) !important;
+}
+
+/* Dynamic border radius */
+.rounded-lg,
+.rounded-xl {
+  border-radius: var(--borderRadius) !important;
+}
+
+/* Dynamic spacing */
+.space-y-4 > * + * {
+  margin-top: var(--spacing) !important;
+}
+
+.gap-4 {
+  gap: var(--spacing) !important;
+}
+
+.p-4 {
+  padding: var(--spacing) !important;
+}
+
+.m-4 {
+  margin: var(--spacing) !important;
+}
+
+/* Dynamic background colors */
+body {
+  background-color: var(--color-background) !important;
+  color: var(--color-text) !important;
+}
+
+/* Update existing gradient backgrounds */
+.bg-gradient-to-r {
+  background-image: linear-gradient(to right, var(--tw-gradient-from), var(--tw-gradient-to)) !important;
+}
+
+.bg-gradient-to-br {
+  background-image: linear-gradient(to bottom right, var(--tw-gradient-from), var(--tw-gradient-to)) !important;
+}
+
+/* Ensure text remains readable */
+.text-white {
+  color: var(--color-text) !important;
+}

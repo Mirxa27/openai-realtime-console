@@ -14,7 +14,8 @@ import {
   Zap,
   Globe,
   Shield,
-  Wrench
+  Wrench,
+  Palette
 } from 'lucide-react';
 import { useAdminStore } from '../../lib/store';
 import GlassCard from '../UI/GlassCard';
@@ -25,6 +26,7 @@ import AIProviderSettings from '../Admin/AIProviderSettings';
 import ContentManagement from '../Admin/ContentManagement';
 import UserAnalytics from '../Admin/UserAnalytics';
 import PaymentSettings from '../Admin/PaymentSettings';
+import DesignSettings from '../Admin/DesignSettings';
 
 export default function AdminPage() {
   const location = useLocation();
@@ -35,6 +37,7 @@ export default function AdminPage() {
     { id: 'environment', label: 'Environment', icon: Settings, path: '/admin/environment' },
     { id: 'ai-providers', label: 'AI Providers', icon: Brain, path: '/admin/ai-providers' },
     { id: 'content', label: 'Content', icon: Globe, path: '/admin/content' },
+    { id: 'design', label: 'Design', icon: Palette, path: '/admin/design' },
     { id: 'payments', label: 'Payments', icon: CreditCard, path: '/admin/payments' },
     { id: 'users', label: 'Users', icon: Users, path: '/admin/users' },
     { id: 'analytics', label: 'Analytics', icon: BarChart3, path: '/admin/analytics' }
@@ -187,6 +190,7 @@ export default function AdminPage() {
             <Route path="/environment" element={<EnvironmentSettings />} />
             <Route path="/ai-providers" element={<AIProviderSettings />} />
             <Route path="/content" element={<ContentManagement />} />
+            <Route path="/design" element={<DesignSettings />} />
             <Route path="/payments" element={<PaymentSettings />} />
             <Route path="/users" element={<UserAnalytics />} />
             <Route path="/analytics" element={<UserAnalytics />} />
